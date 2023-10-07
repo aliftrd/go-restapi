@@ -2,6 +2,7 @@ package controller
 
 import (
 	"encoding/json"
+	"github.com/go-playground/validator/v10"
 	"github.com/julienschmidt/httprouter"
 	"net/http"
 	"simple-web/helper"
@@ -16,6 +17,7 @@ type UserController interface {
 
 type UserControllerImpl struct {
 	UserService service.UserService `di.inject:"userService"`
+	Validate    *validator.Validate `di.inject:"validate"`
 }
 
 func (c *UserControllerImpl) FindAll(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
@@ -33,25 +35,22 @@ func (c *UserControllerImpl) FindAll(w http.ResponseWriter, r *http.Request, p h
 }
 
 func (c *UserControllerImpl) Create(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	err := r.ParseForm()
+	payload := new(dto.UserCreateRequest)
 
-	userRequest := dto.UserCreateRequest{
-		Name:     r.PostFormValue("name"),
-		Email:    r.PostFormValue("email"),
-		Password: r.PostFormValue("password"),
-	}
+	err := json.NewDecoder(r.Body).Decode(payload)
+	helper.PanicIfError(err)
 
-	user, err := c.UserService.Create(r.Context(), &userRequest)
+	validationError := c.Validate.Struct(payload)
+	helper.PanicIfError(validationError)
 
-	if err.Error() == "email already exists" {
+	user, err := c.UserService.Create(r.Context(), payload)
+	if err != nil {
 		helper.ToResponseBody(w, dto.WebResponse{
-			Code:   http.StatusBadRequest,
+			Code:   http.StatusInternalServerError,
 			Status: false,
-			Data:   "email already exists",
+			Data:   err.Error(),
 		})
 		return
 	}
-
-	helper.PanicIfError(err)
 	helper.ToResponseBody(w, user)
 }

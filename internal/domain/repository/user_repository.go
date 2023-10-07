@@ -3,66 +3,63 @@ package repository
 import (
 	"context"
 	"database/sql"
-	"errors"
-	"github.com/go-sql-driver/mysql"
 	"simple-web/helper"
 	"simple-web/internal/domain/entity"
 )
 
 type UserRepository interface {
 	FindAll(ctx context.Context, tx *sql.Tx) []*entity.User
-	FindByEmail(ctx context.Context, tx *sql.Tx, email string) (*entity.User, error)
+	FindByEmail(ctx context.Context, tx *sql.Tx, email string) *entity.User
 	Insert(ctx context.Context, tx *sql.Tx, user *entity.User) (*entity.User, error)
 }
 
 type UserRepositoryImpl struct {
 }
 
-func (r UserRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx) []*entity.User {
+func (u *UserRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx) []*entity.User {
 	query := "SELECT id, name, email, password FROM users"
 	rows, err := tx.QueryContext(ctx, query)
 	helper.PanicIfError(err)
+	defer rows.Close()
 
 	var users []*entity.User
-
 	for rows.Next() {
-		var user entity.User
+		user := new(entity.User)
 		err = rows.Scan(&user.ID, &user.Name, &user.Email, &user.Password)
-		users = append(users, &user)
+		helper.PanicIfError(err)
+		users = append(users, user)
 	}
 
 	return users
 }
 
-func (r UserRepositoryImpl) FindByEmail(ctx context.Context, tx *sql.Tx, email string) (*entity.User, error) {
+func (u *UserRepositoryImpl) FindByEmail(ctx context.Context, tx *sql.Tx, email string) *entity.User {
 	query := "SELECT id, name, email, password FROM users WHERE email = ? LIMIT 1"
-	row, err := tx.QueryContext(ctx, query, email)
+	rows, err := tx.QueryContext(ctx, query, email)
 	helper.PanicIfError(err)
+	defer rows.Close()
 
-	user := entity.User{}
-
-	if !row.Next() {
-		return &user, errors.New("user not found")
+	if !rows.Next() {
+		return nil
 	}
 
-	err = row.Scan(&user.ID, &user.Name, &user.Email, &user.Password)
+	user := new(entity.User)
+	err = rows.Scan(&user.ID, &user.Name, &user.Email, &user.Password)
 	helper.PanicIfError(err)
-
-	return &user, nil
+	return user
 }
 
-func (r UserRepositoryImpl) Insert(ctx context.Context, tx *sql.Tx, user *entity.User) (*entity.User, error) {
+func (u *UserRepositoryImpl) Insert(ctx context.Context, tx *sql.Tx, user *entity.User) (*entity.User, error) {
 	query := "INSERT INTO users (name, email, password) VALUES (?, ?, ?)"
 	result, err := tx.ExecContext(ctx, query, user.Name, user.Email, user.Password)
-	if me, ok := err.(*mysql.MySQLError); ok {
-		if me.Number == 1062 {
-			return nil, errors.New("email already exists")
-		}
+	if err != nil {
+		return nil, err
 	}
-	helper.PanicIfError(err)
 
 	id, err := result.LastInsertId()
-	helper.PanicIfError(err)
+	if err != nil {
+		return nil, err
+	}
 
 	user.ID = int(id)
 
