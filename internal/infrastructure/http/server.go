@@ -4,9 +4,9 @@ import (
 	"github.com/goioc/di"
 	"github.com/julienschmidt/httprouter"
 	"net/http"
-	"simple-web/helper"
+	"simple-web/internal/exception"
+	"simple-web/internal/helper"
 	"simple-web/internal/interface/api/controller"
-	"simple-web/pkg/exception"
 )
 
 func StartServer() {
@@ -14,7 +14,9 @@ func StartServer() {
 
 	userController := di.GetInstance("userController").(controller.UserController)
 	router.GET("/users", userController.FindAll)
+	router.GET("/users/:email", userController.FindByEmail)
 	router.POST("/users", userController.Create)
+	router.DELETE("/users/:id", userController.Delete)
 
 	router.PanicHandler = exception.ErrorHandler
 

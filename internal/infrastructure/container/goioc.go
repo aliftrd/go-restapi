@@ -5,9 +5,9 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/goioc/di"
 	"reflect"
-	"simple-web/helper"
 	"simple-web/internal/domain/repository"
 	"simple-web/internal/domain/service"
+	"simple-web/internal/helper"
 	"simple-web/internal/infrastructure/database"
 	"simple-web/internal/interface/api/controller"
 )

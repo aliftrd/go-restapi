@@ -3,8 +3,8 @@ package exception
 import (
 	"github.com/go-playground/validator/v10"
 	"net/http"
-	"simple-web/helper"
 	"simple-web/internal/application/dto"
+	"simple-web/internal/helper"
 )
 
 func ErrorHandler(w http.ResponseWriter, r *http.Request, err interface{}) {
@@ -21,13 +21,13 @@ func validationErrors(w http.ResponseWriter, r *http.Request, err interface{}) b
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
 
-		webResponse := dto.WebResponse{
+		response := dto.ErrorResponse{
 			Code:   http.StatusBadRequest,
 			Status: false,
-			Data:   exception.Error(),
+			Errors: exception.Error(),
 		}
 
-		helper.ToResponseBody(w, webResponse)
+		helper.ToResponseBody(w, response, response.Code)
 		return true
 	} else {
 		return false
@@ -38,11 +38,11 @@ func internalServerError(w http.ResponseWriter, r *http.Request, err interface{}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusInternalServerError)
 
-	response := dto.WebResponse{
+	response := dto.ErrorResponse{
 		Code:   http.StatusInternalServerError,
 		Status: false,
-		Data:   err,
+		Errors: err,
 	}
 
-	helper.ToResponseBody(w, response)
+	helper.ToResponseBody(w, response, response.Code)
 }

@@ -3,7 +3,7 @@ package database
 import (
 	"database/sql"
 	"simple-web/config"
-	"simple-web/helper"
+	"simple-web/internal/helper"
 	"strconv"
 	"time"
 )
